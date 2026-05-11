@@ -1,0 +1,45 @@
+[project]
+name = "vogueframe-ai-server"
+version = "0.1.0"
+description = "VogueFrame AI — FastAPI backend for AI-powered outfit image generation"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.29.0",
+    "python-dotenv>=1.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "psycopg2-binary>=2.9.9",
+    "cloudinary>=1.40.0",
+    "google-cloud-aiplatform>=1.52.0",
+    "google-auth>=2.29.0",
+    "pydantic>=2.7.0",
+    "python-multipart>=0.0.9",
+    "aiofiles>=23.2.1",
+    "sqlalchemy>=2.0.29",
+    "alembic>=1.13.1",
+    "pillow>=10.3.0",
+    "requests>=2.31.0",
+]
+
+[project.scripts]
+dev = "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.2.0",
+    "pytest-asyncio>=0.23.6",
+    "httpx>=0.27.0",
+    "ruff>=0.4.3",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]

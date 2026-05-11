@@ -1,0 +1,74 @@
+# ──────────────────────────────────────────
+# Environment & Secrets  — NEVER COMMIT THESE
+# ──────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+google-credentials.json
+service-account*.json
+gcp-*.json
+
+# ──────────────────────────────────────────
+# Python / Backend (uv + FastAPI)
+# ──────────────────────────────────────────
+server/.venv/
+server/__pycache__/
+server/**/__pycache__/
+server/**/*.pyc
+server/**/*.pyo
+server/**/*.pyd
+server/.python-version
+server/uv.lock
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+alembic/versions/__pycache__/
+
+# ──────────────────────────────────────────
+# Node / Frontend (React + Vite)
+# ──────────────────────────────────────────
+client/node_modules/
+client/dist/
+client/.vite/
+client/.env
+client/.env.*
+!client/.env.example
+*.tsbuildinfo
+
+# ──────────────────────────────────────────
+# Uploads & Generated Outputs
+# ──────────────────────────────────────────
+server/uploads/
+server/outputs/
+server/temp/
+*.zip
+
+# ──────────────────────────────────────────
+# OS & Editor
+# ──────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ──────────────────────────────────────────
+# Logs
+# ──────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ──────────────────────────────────────────
+# Vercel
+# ──────────────────────────────────────────
+.vercel/
