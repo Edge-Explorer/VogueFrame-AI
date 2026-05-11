@@ -14,7 +14,7 @@ from app.core.config import settings
 # Initialize Vertex AI once at module load
 vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_LOCATION)
 
-IMAGEN_MODEL_ID = "imagegeneration@006"  # Imagen 2
+IMAGEN_MODEL_ID = "imagen-3.0-generate-001"  # Imagen 3
 
 
 def _load_model() -> ImageGenerationModel:

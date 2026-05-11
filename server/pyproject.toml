@@ -20,10 +20,14 @@ dependencies = [
     "alembic>=1.13.1",
     "pillow>=10.3.0",
     "requests>=2.31.0",
+    "pydantic-settings>=2.14.1",
 ]
 
 [project.scripts]
-dev = "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+# dev = "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
 
 [build-system]
 requires = ["hatchling"]
