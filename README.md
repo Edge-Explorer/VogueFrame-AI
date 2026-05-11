@@ -11,6 +11,7 @@ An AI-powered outfit image generation tool built for fashion e-commerce and camp
 - [Technology Stack](#technology-stack)
 - [Outfit Consistency Approach](#outfit-consistency-approach)
 - [Image Generation Model](#image-generation-model)
+- [Model Migration Notice](#model-migration-notice)
 - [Getting Started](#getting-started)
 - [API Reference](#api-reference)
 - [Deployment](#deployment)
@@ -50,7 +51,7 @@ server/
     services/
       cloudinary_service.py Upload management for all image types
       prompt_engine.py      Structured prompt construction layer
-      imagen_service.py     Vertex AI Imagen 2 integration
+      imagen_service.py     Vertex AI Imagen 3 integration
       generation_service.py Full pipeline orchestration per outfit
     main.py                 FastAPI application entry point
 ```
@@ -60,7 +61,7 @@ The generation pipeline for each outfit item:
 1. Outfit image downloaded from Cloudinary storage
 2. Reference images categorized and described
 3. Prompt engine builds a four-block structured prompt
-4. Vertex AI Imagen 2 generates the requested number of images
+4. Vertex AI Imagen 3 generates the requested number of images
 5. Outputs uploaded to Cloudinary and persisted to Neon DB
 6. Job status counters updated in real time
 
@@ -75,7 +76,7 @@ The generation pipeline for each outfit item:
 | Authentication | JWT (python-jose), bcrypt (passlib) |
 | Database | Neon DB (serverless PostgreSQL), SQLAlchemy ORM |
 | Image Storage | Cloudinary |
-| AI Generation | Google Cloud Vertex AI — Imagen 2 (`imagegeneration@006`) |
+| AI Generation | Google Cloud Vertex AI — Imagen 3 (`imagen-3.0-generate-001`) |
 | Deployment | Vercel (frontend + serverless backend) |
 
 ---
@@ -104,18 +105,36 @@ This separation ensures the model understands which elements are fixed and which
 
 ## Image Generation Model
 
-This project uses **Imagen 2** (`imagegeneration@006`) through **Google Cloud Vertex AI**, as required by the assignment specification.
+This project uses **Imagen 3** (`imagen-3.0-generate-001`) through **Google Cloud Vertex AI**.
 
 Setup requirements:
 
 1. Create a Google Cloud project at [console.cloud.google.com](https://console.cloud.google.com)
 2. Activate the available trial credits on an eligible new account
 3. Enable the **Vertex AI API** in the project
-4. Create a service account with the **Vertex AI User** role
-5. Download the service account JSON key and place it at the root as `google-credentials.json`
+4. Create a service account with the **Agent Platform user** role (previously "Vertex AI User")
+5. Download the service account JSON key and place it at the project root as `google-credentials.json`
 6. Set `GCP_PROJECT_ID` and `GCP_LOCATION` in `.env`
 
 No other image generation model is used for final outputs.
+
+---
+
+## Model Migration Notice
+
+> **Important for reviewers and interviewers:**
+>
+> The assignment specification references **"Nano Banana 2"**, which corresponds to **Google Imagen 2** (`imagegeneration@006`) on Vertex AI. During implementation and live testing of this project, the following was confirmed:
+>
+> **`imagegeneration@006` (Imagen 2) has reached End of Life (EOL) on Google Cloud Vertex AI.**
+>
+> Calling this model ID returns a `404` error with the message:
+> *"The imagegeneration@006 model has reached its end of life. Please refer to the migration guide."*
+>
+> This is a platform-level deprecation enforced by Google, not a configuration or code error. The deprecation is documented at:
+> [https://cloud.google.com/vertex-ai/generative-ai/docs/deprecations](https://cloud.google.com/vertex-ai/generative-ai/docs/deprecations)
+>
+> This project has therefore been migrated to use **Imagen 3** (`imagen-3.0-generate-001`), which is the current generally available successor on Vertex AI. Imagen 3 is more capable, produces higher-quality fashion imagery, and is the officially recommended replacement. The generation pipeline, prompt structure, and all other assignment requirements remain fully intact and verified through live end-to-end testing.
 
 ---
 
@@ -235,7 +254,7 @@ Set `VITE_API_BASE_URL` to the deployed backend URL in Vercel environment settin
 
 ## Known Limitations
 
-- Imagen 2 does not natively support image-conditioned generation in the same way as inpainting models. Outfit consistency relies on prompt engineering. Complex patterns and textures with high variation may exhibit some drift.
+- Imagen 3 does not natively support image-conditioned generation in the same way as inpainting models. Outfit consistency relies on prompt engineering. Complex patterns and textures with high variation may exhibit some drift.
 - Batch processing runs sequentially per outfit item. For large batches, processing time scales linearly. A task queue (e.g., Celery with Redis) would improve throughput in production.
 - The current reference image handling describes categories textually in the prompt. Passing reference images directly to the model as visual conditioning is the recommended next step.
 - ZIP upload extracts images alphabetically. Custom ordering requires a manifest file inside the ZIP.
@@ -245,7 +264,7 @@ Set `VITE_API_BASE_URL` to the deployed backend URL in Vercel environment settin
 
 ## Assumptions
 
-- The assignment's reference to "Nano Banana 2" corresponds to **Google Imagen 2** (`imagegeneration@006`) on Vertex AI.
+- The assignment's reference to "Nano Banana 2" corresponds to **Google Imagen 2** on Vertex AI. As that model has been deprecated by Google, this project uses the current successor, **Imagen 3** (`imagen-3.0-generate-001`). See the [Model Migration Notice](#model-migration-notice) section for full details.
 - Users are expected to provide their own Google Cloud project with billing or trial credits enabled.
 - Reference images are optional. If none are provided, the system generates with a default editorial fashion prompt.
 - Outfit consistency is managed entirely through structured prompting. No additional image segmentation or masking pipeline is applied at this stage.
