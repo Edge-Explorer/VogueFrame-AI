@@ -1,5 +1,6 @@
 // Main generation page — upload outfits + references, fire job
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Zap } from 'lucide-react';
 import DropZone from '../components/DropZone';

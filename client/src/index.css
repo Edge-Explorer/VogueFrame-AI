@@ -1,75 +1,131 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer base {
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    font-family: 'Inter', sans-serif;
-    background-color: #0a0a0a;
-    color: #e8e8e8;
-    -webkit-font-smoothing: antialiased;
-  }
-  ::-webkit-scrollbar {
-    width: 4px;
-  }
-  ::-webkit-scrollbar-track {
-    background: #111;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #333;
-    border-radius: 2px;
-  }
+/* ── Tokens ── */
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --color-surface:  #0a0a0a;
+  --color-card:     #111111;
+  --color-border:   #222222;
+  --color-border-2: #2a2a2a;
 }
 
-@layer components {
-  .card {
-    @apply bg-[#111] border border-[#222] rounded-xl;
-  }
-  .btn-primary {
-    @apply bg-white text-black font-medium px-5 py-2.5 rounded-lg text-sm
-           hover:bg-neutral-200 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-  .btn-ghost {
-    @apply border border-[#333] text-neutral-300 font-medium px-5 py-2.5 rounded-lg text-sm
-           hover:border-neutral-500 hover:text-white transition-colors duration-150;
-  }
-  .input {
-    @apply w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-sm text-white
-           placeholder-neutral-600 focus:outline-none focus:border-neutral-500 transition-colors;
-  }
-  .label {
-    @apply block text-xs font-medium text-neutral-400 mb-1.5 uppercase tracking-wide;
-  }
-  .status-badge {
-    @apply inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full;
-  }
+/* ── Base ── */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #0a0a0a;
+  color: #e8e8e8;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Dropzone hover pulse */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+/* ── Shared component styles (plain CSS, no @apply) ── */
+.card {
+  background-color: #111;
+  border: 1px solid #222;
+  border-radius: 0.75rem;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff;
+  color: #000;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+.btn-primary:hover { background-color: #e5e5e5; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: #d4d4d4;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid #333;
+  cursor: pointer;
+  transition: border-color 150ms, color 150ms;
+}
+.btn-ghost:hover { border-color: #737373; color: #fff; }
+
+.input {
+  width: 100%;
+  background-color: #0f0f0f;
+  border: 1px solid #2a2a2a;
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: #fff;
+  outline: none;
+  transition: border-color 150ms;
+}
+.input::placeholder { color: #525252; }
+.input:focus { border-color: #737373; }
+
+.label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #a3a3a3;
+  margin-bottom: 0.375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+/* ── Dropzone active state ── */
 .dropzone-active {
   border-color: #fff !important;
   background-color: #1a1a1a !important;
 }
 
-/* Fade-in for gallery images */
+/* ── Animations ── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.fade-in {
-  animation: fadeIn 0.3s ease both;
-}
+.fade-in { animation: fadeIn 0.3s ease both; }
 
-/* Pulsing loader dot */
 @keyframes pulse-dot {
   0%, 100% { opacity: 0.2; }
   50%       { opacity: 1; }
 }
-.pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+.pulse-dot {
+  animation: pulse-dot 1.2s ease-in-out infinite;
+  width: 0.375rem;
+  height: 0.375rem;
+  background-color: currentColor;
+  border-radius: 9999px;
+  display: block;
+}
 .pulse-dot:nth-child(2) { animation-delay: 0.2s; }
 .pulse-dot:nth-child(3) { animation-delay: 0.4s; }
