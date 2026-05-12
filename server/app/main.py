@@ -4,7 +4,9 @@ VogueFrame AI — FastAPI Application Entry Point
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from app.core.config import settings
 from app.db.session import init_db
@@ -14,6 +16,8 @@ from app.api.v1.router import api_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle handler."""
+    # Ensure uploads directory exists on startup
+    os.makedirs(os.path.join(os.path.dirname(__file__), "../uploads"), exist_ok=True)
     init_db()
     yield
 
@@ -36,6 +40,9 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+
+# Mount local uploads directory for serving static images locally without Cloudinary
+app.mount("/uploads", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "../uploads")), name="uploads")
 
 
 @app.get("/health", tags=["health"])
