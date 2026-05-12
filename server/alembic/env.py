@@ -29,6 +29,13 @@ target_metadata = Base.metadata
 
 # Dynamically resolve DB URL logic matching session.py fallback
 db_url = settings.DATABASE_URL
+if db_url:
+    # Handle user copy-pasting the full "psql '...'" command from Neon console
+    if db_url.startswith("psql '"):
+        db_url = db_url[6:-1]
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
 if not db_url or "ep-xxx.neon.tech" in db_url or not db_url.startswith(("postgresql", "sqlite")):
     db_url = "sqlite:///./vogueframe.db"
 

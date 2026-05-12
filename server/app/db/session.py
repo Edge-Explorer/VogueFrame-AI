@@ -6,6 +6,13 @@ from app.core.config import settings
 from app.models.base import Base
 
 db_url = settings.DATABASE_URL
+if db_url:
+    # Handle user copy-pasting the full "psql '...'" command from Neon console
+    if db_url.startswith("psql '"):
+        db_url = db_url[6:-1]
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
 # If the URL is missing, invalid, or left as the template placeholder, fall back seamlessly to local SQLite
 if not db_url or "ep-xxx.neon.tech" in db_url or not db_url.startswith(("postgresql", "sqlite")):
     db_url = "sqlite:///./vogueframe.db"
