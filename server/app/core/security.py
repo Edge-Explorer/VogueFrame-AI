@@ -10,12 +10,17 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(plain: str) -> str:
-    # Ensure password does not exceed bcrypt's strict 72-byte maximum limit
-    return pwd_context.hash(plain[:72])
+    # Safely truncate to 72 BYTES (not just characters) to account for multi-byte Unicode strings
+    safe_bytes = plain.encode("utf-8")[:72]
+    # Decode back, ignoring invalid partial UTF-8 sequences at the trailing byte slice boundary
+    safe_str = safe_bytes.decode("utf-8", errors="ignore")
+    return pwd_context.hash(safe_str)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain[:72], hashed)
+    safe_bytes = plain.encode("utf-8")[:72]
+    safe_str = safe_bytes.decode("utf-8", errors="ignore")
+    return pwd_context.verify(safe_str, hashed)
 
 
 def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
