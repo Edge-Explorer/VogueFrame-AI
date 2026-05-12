@@ -10,6 +10,8 @@ db_url = settings.DATABASE_URL
 if not db_url or "ep-xxx.neon.tech" in db_url or not db_url.startswith(("postgresql", "sqlite")):
     db_url = "sqlite:///./vogueframe.db"
 
+print(f"\n[DATABASE] Booting session engine targeted at: {db_url.split('@')[-1] if '@' in db_url else db_url}\n")
+
 if db_url.startswith("sqlite"):
     engine = create_engine(
         db_url,

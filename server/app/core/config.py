@@ -35,7 +35,8 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = ["http://localhost:5173"]
 
     class Config:
-        env_file = "../.env"
+        import os
+        env_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.env"))
         env_file_encoding = "utf-8"
         extra = "ignore"
 
