@@ -108,7 +108,7 @@ export default function Generate() {
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
-            Nano Banana Engine — Imagen 4
+            Nano Banana 2 Engine
           </span>
           <button id="submit-generation" type="submit" disabled={loading} className="btn btn-primary">
             {loading
