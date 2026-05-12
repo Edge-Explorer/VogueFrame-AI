@@ -29,7 +29,7 @@ export default function Generate() {
       if (notes) form.append('outfit_names', notes);
       
       const { data } = await api.post('/jobs/', form, { headers: { 'Content-Type': 'multipart/form-data' } });
-      navigate(`/jobs/${data.id}`);
+      navigate(`/jobs/${data.job_id}`);
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       if (Array.isArray(detail)) {
