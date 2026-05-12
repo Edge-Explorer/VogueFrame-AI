@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../lib/api';
 
-interface GeneratedImage { id: string; cloudinary_url: string; consistency_score: number | null; }
+interface GeneratedImage { id: string; url: string; consistency_score: number | null; }
 interface OutfitItem {
   id: string; status: string; outfit_image_url: string;
   generated_images: GeneratedImage[];
@@ -10,7 +10,7 @@ interface OutfitItem {
 interface Job {
   id: string; status: string; total_outfits: number;
   completed_outfits: number; failed_outfits: number;
-  created_at: string; outfit_items: OutfitItem[];
+  created_at: string; outfits: OutfitItem[];
 }
 
 const POLL_MS = 4000;
@@ -121,7 +121,7 @@ export default function JobDetail() {
       )}
 
       {/* Outfit cards */}
-      {job.outfit_items.map((item, idx) => (
+      {job.outfits?.map((item, idx) => (
         <div key={item.id} className="card outfit-card fade-up">
           <div className="outfit-card__header">
             <div className="outfit-card__title">
@@ -152,11 +152,11 @@ export default function JobDetail() {
             )}
 
             {/* Generated */}
-            {item.generated_images.map(gi => (
-              <div key={gi.id} className="image-tile" onClick={() => setLightbox(gi.cloudinary_url)}>
-                <img src={gi.cloudinary_url} alt="Generated" />
+            {item.generated_images?.map(gi => (
+              <div key={gi.id} className="image-tile" onClick={() => setLightbox(gi.url)}>
+                <img src={gi.url} alt="Generated" />
                 <a
-                  href={gi.cloudinary_url} download target="_blank" rel="noreferrer"
+                  href={gi.url} download target="_blank" rel="noreferrer"
                   className="image-tile__download"
                   onClick={e => e.stopPropagation()}
                 >
@@ -170,7 +170,7 @@ export default function JobDetail() {
             ))}
 
             {/* Placeholders */}
-            {item.status === 'processing' && item.generated_images.length === 0 &&
+            {item.status === 'processing' && (!item.generated_images || item.generated_images.length === 0) &&
               Array.from({ length: 2 }).map((_, i) => (
                 <div key={i} className="image-tile--placeholder">
                   <div className="spinner" />
