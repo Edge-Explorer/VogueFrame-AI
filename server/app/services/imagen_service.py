@@ -53,6 +53,8 @@ def generate_fashion_images(
     for model_id in IMAGE_MODELS:
         for attempt in range(1, MAX_RETRIES + 1):
             try:
+                print(f"[Imagen] Trying model={model_id}, attempt={attempt} for batch of {count} image(s)")
+                
                 # Pass the source outfit image as inline data so the model can visually preserve/replicate it exactly
                 contents = [
                     types.Part.from_bytes(data=outfit_image_bytes, mime_type="image/png"),
@@ -62,21 +64,22 @@ def generate_fashion_images(
                     "seen in the reference image.\n\n" + prompt
                 ]
 
-                result = client.models.generate_content(
-                    model=model_id,
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["TEXT", "IMAGE"],
-                        temperature=0.7,  # lower temperature slightly for higher consistency/faithfulness
-                    ),
-                )
-
                 image_bytes_list: list[bytes] = []
-                if result.candidates:
-                    for part in result.candidates[0].content.parts:
-                        if part.inline_data is not None and part.inline_data.data:
-                            image_bytes_list.append(part.inline_data.data)
-                            if len(image_bytes_list) >= count:
+                for img_idx in range(count):
+                    print(f"[Imagen] Generating image {img_idx + 1} of {count}...")
+                    result = client.models.generate_content(
+                        model=model_id,
+                        contents=contents,
+                        config=types.GenerateContentConfig(
+                            response_modalities=["TEXT", "IMAGE"],
+                            temperature=0.7 + (img_idx * 0.05),  # vary temperature slightly for distinct creative output shots
+                        ),
+                    )
+
+                    if result.candidates:
+                        for part in result.candidates[0].content.parts:
+                            if part.inline_data is not None and part.inline_data.data:
+                                image_bytes_list.append(part.inline_data.data)
                                 break
 
                 if not image_bytes_list:
