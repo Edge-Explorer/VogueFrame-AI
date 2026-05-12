@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="VogueFrame AI",
-    description="AI-powered outfit image generation backend — Vertex AI Imagen 2 + FastAPI",
+    description="AI-powered outfit image generation backend — Nano Banana Engine (Imagen 4) + FastAPI",
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
