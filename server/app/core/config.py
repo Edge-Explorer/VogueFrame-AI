@@ -22,13 +22,14 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
 
-    # Google Cloud / Vertex AI
-    GCP_PROJECT_ID: str
-    GCP_LOCATION: str = "us-central1"
-    GOOGLE_APPLICATION_CREDENTIALS: str = "./google-credentials.json"
+    # Google GenAI / AI Studio (Nano Banana Engine)
+    GEMINI_API_KEY: str
 
-    # Gemini (optional)
-    GEMINI_API_KEY: str = ""
+    # Legacy GCP Vertex AI (Optional fallback)
+    GCP_PROJECT_ID: str = ""
+    GCP_LOCATION: str = "us-central1"
+    GOOGLE_APPLICATION_CREDENTIALS: str = ""
+
 
     # CORS
     ALLOWED_ORIGINS: List[str] = ["http://localhost:5173"]

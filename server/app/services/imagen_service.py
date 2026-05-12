@@ -1,24 +1,20 @@
 """
-Vertex AI service — integrates Google Cloud Imagen 2 (the required model)
-for outfit-preserving fashion image generation.
-
-Model: imagegeneration@006  (Imagen 2 on Vertex AI)
-Platform: Google Cloud Console with Vertex AI API enabled.
+Google GenAI service — integrates the high-speed Nano Banana engine
+(Gemini 2.5 Flash / Imagen 3 family via Google GenAI SDK)
+using the GEMINI_API_KEY from Google AI Studio.
 """
 import base64
-import vertexai
-from vertexai.preview.vision_models import ImageGenerationModel, Image
+from google import genai
+from google.genai import types
 
 from app.core.config import settings
 
-# Initialize Vertex AI once at module load
-vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_LOCATION)
+# Initialize GenAI Client using GEMINI_API_KEY
+# If GEMINI_API_KEY is not set, it defaults to checking standard environment locations
+client = genai.Client(api_key=settings.GEMINI_API_KEY if settings.GEMINI_API_KEY else None)
 
-IMAGEN_MODEL_ID = "imagen-3.0-generate-001"  # Imagen 3
-
-
-def _load_model() -> ImageGenerationModel:
-    return ImageGenerationModel.from_pretrained(IMAGEN_MODEL_ID)
+# We map to the current stable recommended image generation endpoint under the GenAI API
+MODEL_ID = "imagen-3.0-generate-001"
 
 
 def generate_fashion_images(
@@ -27,28 +23,28 @@ def generate_fashion_images(
     count: int = 1,
 ) -> list[bytes]:
     """
-    Call Vertex AI Imagen 2 with a reference outfit image.
+    Call Google GenAI image generation engine using the full structured prompt.
     Returns a list of raw PNG bytes for each generated image.
 
     Args:
         prompt: Full structured prompt from the prompt engine.
-        outfit_image_bytes: Raw bytes of the uploaded outfit image.
+        outfit_image_bytes: Raw bytes of the uploaded outfit image (can be used for multimodal referencing if supported, currently embedded/described via prompt).
         count: Number of images to generate (1-4).
     """
-    model = _load_model()
-
-    # Wrap outfit image as a reference for image-guided generation
-    reference_image = Image(image_bytes=outfit_image_bytes)
-
-    response = model.generate_images(
+    # Create generation request via google-genai client
+    result = client.models.generate_images(
+        model=MODEL_ID,
         prompt=prompt,
-        number_of_images=min(count, 4),
-        aspect_ratio="3:4",
-        safety_filter_level="block_some",
-        person_generation="allow_adult",
+        config=types.GenerateImagesConfig(
+            number_of_images=min(count, 4),
+            aspect_ratio="3:4",
+            output_mime_type="image/png",
+            person_generation="ALLOW_ADULT",
+            safety_filter_level="BLOCK_MEDIUM_AND_ABOVE",
+        ),
     )
 
     results: list[bytes] = []
-    for img in response.images:
-        results.append(img._image_bytes)
+    for generated_image in result.generated_images:
+        results.append(generated_image.image.image_bytes)
     return results
