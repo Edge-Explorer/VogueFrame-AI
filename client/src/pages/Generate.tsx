@@ -18,17 +18,30 @@ export default function Generate() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!outfits.length) { setError('Upload at least one outfit image.'); return; }
+    if (!outfits.length) { setError('Upload at least one outfit image or a ZIP file.'); return; }
     setError('');
     setLoading(true);
     try {
       const form = new FormData();
-      outfits.forEach(f => form.append('outfit_images', f));
+      
+      // Check if a single ZIP file was uploaded
+      const isZip = outfits.length === 1 && outfits[0].name.toLowerCase().endsWith('.zip');
+      
+      if (isZip) {
+        form.append('zip_file', outfits[0]);
+      } else {
+        outfits.forEach(f => form.append('outfit_images', f));
+      }
+      
       refs.forEach(f => form.append('reference_images', f));
       form.append('images_per_outfit', String(count));
-      if (notes) form.append('outfit_names', notes);
+      if (notes) {
+        if (isZip) form.append('reference_categories', notes); // Fallback for ZIP notes if needed
+        else form.append('outfit_names', notes);
+      }
       
-      const { data } = await api.post('/jobs/', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const endpoint = isZip ? '/jobs/upload-zip' : '/jobs/';
+      const { data } = await api.post(endpoint, form, { headers: { 'Content-Type': 'multipart/form-data' } });
       navigate(`/jobs/${data.job_id}`);
     } catch (err: any) {
       const detail = err.response?.data?.detail;
