@@ -1,8 +1,6 @@
-// Main generation page — upload outfits + references, fire job
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Zap } from 'lucide-react';
 import DropZone from '../components/DropZone';
 import api from '../lib/api';
 
@@ -11,12 +9,12 @@ const ACCEPT_ZIP = { 'application/zip': ['.zip'], ...ACCEPT_IMG };
 
 export default function Generate() {
   const navigate = useNavigate();
-  const [outfits, setOutfits]   = useState<File[]>([]);
-  const [refs, setRefs]         = useState<File[]>([]);
-  const [count, setCount]       = useState(2);
-  const [notes, setNotes]       = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
+  const [outfits, setOutfits] = useState<File[]>([]);
+  const [refs, setRefs]       = useState<File[]>([]);
+  const [count, setCount]     = useState(2);
+  const [notes, setNotes]     = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -29,10 +27,7 @@ export default function Generate() {
       refs.forEach(f => form.append('reference_files', f));
       form.append('images_per_outfit', String(count));
       if (notes) form.append('notes', notes);
-
-      const { data } = await api.post('/jobs/', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await api.post('/jobs/', form, { headers: { 'Content-Type': 'multipart/form-data' } });
       navigate(`/jobs/${data.id}`);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to start job. Please try again.');
@@ -42,21 +37,19 @@ export default function Generate() {
   };
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-12 pt-24">
-      {/* Page heading */}
-      <div className="mb-10">
-        <h2 className="text-xl font-semibold text-white tracking-tight">New generation</h2>
-        <p className="text-sm text-neutral-500 mt-1">
-          Upload outfits and optional references. The AI preserves the garment while adapting model, pose, and setting.
-        </p>
+    <main className="page">
+      <div className="page-header">
+        <h2>New generation</h2>
+        <p>Upload garments and optional references. The AI preserves each outfit while adapting model, pose, and scene.</p>
       </div>
 
-      <form onSubmit={submit} className="space-y-8">
+      <form onSubmit={submit}>
         {/* Outfit upload */}
-        <div className="card p-6">
+        <div className="card section" style={{ marginBottom: 12 }}>
+          <p className="section-title">Outfit images</p>
           <DropZone
-            label="Outfit images"
-            hint="PNG, JPG or ZIP — up to 20 items"
+            label=""
+            hint="PNG, JPG or ZIP — up to 20 garments"
             accept={ACCEPT_ZIP}
             multiple
             files={outfits}
@@ -65,9 +58,10 @@ export default function Generate() {
         </div>
 
         {/* Reference upload */}
-        <div className="card p-6">
+        <div className="card section" style={{ marginBottom: 12 }}>
+          <p className="section-title">Reference images <span style={{ color: 'var(--text-3)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></p>
           <DropZone
-            label="Reference images (optional)"
+            label=""
             hint="Model, background, lighting or vibe references"
             accept={ACCEPT_IMG}
             multiple
@@ -76,58 +70,48 @@ export default function Generate() {
           />
         </div>
 
-        {/* Settings row */}
-        <div className="card p-6 grid grid-cols-2 gap-6">
-          <div>
-            <label className="label">Images per outfit</label>
-            <select
-              id="images-per-outfit"
-              value={count}
-              onChange={e => setCount(Number(e.target.value))}
-              className="input"
-            >
-              {[1, 2, 3, 4].map(n => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label">Creative notes (optional)</label>
-            <input
-              id="creative-notes"
-              className="input"
-              placeholder="e.g. outdoor campaign, golden hour"
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-            />
+        {/* Settings */}
+        <div className="card section" style={{ marginBottom: 20 }}>
+          <p className="section-title">Settings</p>
+          <div className="settings-grid">
+            <div>
+              <label className="label">Images per outfit</label>
+              <select id="images-per-outfit" value={count}
+                      onChange={e => setCount(Number(e.target.value))} className="input">
+                {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Creative notes</label>
+              <input id="creative-notes" className="input"
+                     placeholder="e.g. outdoor campaign, golden hour"
+                     value={notes} onChange={e => setNotes(e.target.value)} />
+            </div>
           </div>
         </div>
 
         {error && (
-          <p className="text-red-400 text-sm bg-red-400/5 border border-red-400/20 rounded-lg px-4 py-3">
-            {error}
-          </p>
+          <div style={{ marginBottom: 16 }}>
+            <p className="auth-error">{error}</p>
+          </div>
         )}
 
-        {/* Submit */}
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-xs text-neutral-600 flex items-center gap-1.5">
-            <Zap size={11} />
-            Powered by Nano Banana Engine (Imagen 4)
-          </p>
-          <button id="submit-generation" type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
-            {loading ? (
-              <>
-                <span className="flex gap-1">
-                  <span className="pulse-dot w-1 h-1 bg-black rounded-full block" />
-                  <span className="pulse-dot w-1 h-1 bg-black rounded-full block" />
-                  <span className="pulse-dot w-1 h-1 bg-black rounded-full block" />
-                </span>
-                Processing…
-              </>
-            ) : (
-              <>Generate <ArrowRight size={14} /></>
-            )}
+        <div className="footer-row">
+          <span className="powered-by">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            Nano Banana Engine — Imagen 4
+          </span>
+          <button id="submit-generation" type="submit" disabled={loading} className="btn btn-primary">
+            {loading
+              ? <><span className="dots"><span className="dot" style={{background:'#000'}}/><span className="dot" style={{background:'#000'}}/><span className="dot" style={{background:'#000'}}/></span> Processing…</>
+              : <>Generate
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </>
+            }
           </button>
         </div>
       </form>

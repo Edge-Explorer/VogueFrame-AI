@@ -1,5 +1,3 @@
-// Reusable header/nav bar
-import { LogOut, Layers } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 
@@ -11,33 +9,33 @@ export default function Navbar() {
   const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#1a1a1a] bg-[#0a0a0a]/90 backdrop-blur-md">
-      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-        {/* Brand */}
-        <Link to="/" className="flex items-center gap-2 text-white font-semibold text-sm tracking-tight">
-          <Layers size={16} strokeWidth={1.5} />
+    <header className="navbar">
+      <div className="navbar__inner">
+        <Link to="/" className="navbar__brand">
+          <span className="navbar__brand-dot" />
           VogueFrame AI
         </Link>
 
-        {/* Nav links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm">
+        <nav className="navbar__nav">
           <Link to="/"
-            className={`transition-colors ${pathname === '/' ? 'text-white' : 'text-neutral-500 hover:text-white'}`}>
+            className={`navbar__link ${pathname === '/' ? 'navbar__link--active' : ''}`}>
             Generate
           </Link>
           <Link to="/jobs"
-            className={`transition-colors ${pathname === '/jobs' ? 'text-white' : 'text-neutral-500 hover:text-white'}`}>
+            className={`navbar__link ${pathname.startsWith('/jobs') ? 'navbar__link--active' : ''}`}>
             Jobs
           </Link>
         </nav>
 
-        {/* User */}
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-neutral-500 hidden sm:block">{user?.email}</span>
-          <button onClick={handleLogout}
-                  className="text-neutral-500 hover:text-white transition-colors"
-                  title="Sign out">
-            <LogOut size={15} />
+        <div className="navbar__right">
+          <span className="navbar__email">{user?.email}</span>
+          <button onClick={handleLogout} className="navbar__logout" title="Sign out">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
           </button>
         </div>
       </div>

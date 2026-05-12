@@ -1,7 +1,5 @@
-// Job detail page — live-polling status + output gallery
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Download, RefreshCw, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import api from '../lib/api';
 
 interface GeneratedImage { id: string; cloudinary_url: string; consistency_score: number | null; }
@@ -17,23 +15,21 @@ interface Job {
 
 const POLL_MS = 4000;
 
-const statusColor: Record<string, string> = {
-  pending:    'text-yellow-400',
-  processing: 'text-blue-400',
-  completed:  'text-emerald-400',
-  failed:     'text-red-400',
-};
-
-const StatusIcon = ({ status }: { status: string }) => {
-  if (status === 'completed') return <CheckCircle size={14} className="text-emerald-400" />;
-  if (status === 'failed')    return <XCircle size={14} className="text-red-400" />;
-  if (status === 'processing') return <Loader2 size={14} className="text-blue-400 animate-spin" />;
-  return <Clock size={14} className="text-yellow-400" />;
-};
+function StatusDot({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    pending: '#fbbf24', processing: '#60a5fa', completed: '#34d399', failed: '#f87171'
+  };
+  const isSpinning = status === 'processing';
+  return isSpinning
+    ? <div className="spinner" style={{ borderTopColor: '#60a5fa' }} />
+    : <svg width="8" height="8" viewBox="0 0 8 8">
+        <circle cx="4" cy="4" r="4" fill={colors[status] || '#555'} />
+      </svg>;
+}
 
 export default function JobDetail() {
-  const { id }                = useParams<{ id: string }>();
-  const [job, setJob]         = useState<Job | null>(null);
+  const { id }              = useParams<{ id: string }>();
+  const [job, setJob]       = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState<string | null>(null);
 
@@ -57,16 +53,16 @@ export default function JobDetail() {
   };
 
   if (loading) return (
-    <main className="max-w-5xl mx-auto px-6 py-12 pt-24">
-      <div className="flex items-center gap-2 text-neutral-500 text-sm">
-        <Loader2 size={14} className="animate-spin" /> Loading…
+    <main className="page--wide">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-2)', fontSize: 13 }}>
+        <div className="spinner" /> Loading…
       </div>
     </main>
   );
 
   if (!job) return (
-    <main className="max-w-5xl mx-auto px-6 py-12 pt-24">
-      <p className="text-neutral-500 text-sm">Job not found.</p>
+    <main className="page--wide">
+      <p style={{ color: 'var(--text-2)', fontSize: 13 }}>Job not found.</p>
     </main>
   );
 
@@ -74,118 +70,116 @@ export default function JobDetail() {
   const progress = job.total_outfits > 0 ? (job.completed_outfits / job.total_outfits) * 100 : 0;
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-12 pt-24">
+    <main className="page--wide">
       {/* Lightbox */}
       {lightbox && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-8"
-             onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="Generated" className="max-h-full max-w-full rounded-xl object-contain" />
+        <div className="lightbox" onClick={() => setLightbox(null)}>
+          <img src={lightbox} alt="Generated fashion" />
         </div>
       )}
 
-      {/* Back nav */}
-      <Link to="/jobs" className="inline-flex items-center gap-1.5 text-neutral-500 hover:text-white
-                                   text-sm transition-colors mb-8">
-        <ArrowLeft size={14} /> All jobs
+      <Link to="/jobs" className="back-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        All jobs
       </Link>
 
-      {/* Job header */}
-      <div className="flex items-start justify-between mb-8">
+      {/* Header */}
+      <div className="job-detail-header">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <StatusIcon status={job.status} />
-            <h2 className={`text-xl font-semibold capitalize ${statusColor[job.status]}`}>{job.status}</h2>
+          <div className="job-status-line">
+            <StatusDot status={job.status} />
+            <h2 className={`status--${job.status}`}>{job.status}</h2>
           </div>
-          <p className="text-sm text-neutral-500">
-            {job.total_outfits} outfit{job.total_outfits !== 1 ? 's' : ''} · {' '}
+          <p style={{ fontSize: 13, color: 'var(--text-2)' }}>
+            {job.total_outfits} outfit{job.total_outfits !== 1 ? 's' : ''} ·{' '}
             {new Date(job.created_at).toLocaleDateString('en-GB', {
               day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
             })}
           </p>
         </div>
         {isActive && (
-          <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-            <Loader2 size={12} className="animate-spin" /> Refreshing automatically…
+          <div className="refresh-indicator">
+            <div className="spinner" />
+            Refreshing automatically
           </div>
         )}
       </div>
 
-      {/* Progress bar */}
+      {/* Progress */}
       {isActive && (
-        <div className="mb-8">
-          <div className="flex justify-between text-xs text-neutral-500 mb-2">
+        <div className="progress-wrap">
+          <div className="progress-meta">
             <span>{job.completed_outfits} of {job.total_outfits} complete</span>
             <span>{Math.round(progress)}%</span>
           </div>
-          <div className="h-1 bg-[#1a1a1a] rounded-full overflow-hidden">
-            <div className="h-full bg-white rounded-full transition-all duration-700"
-                 style={{ width: `${progress}%` }} />
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>
       )}
 
-      {/* Outfit grid */}
-      <div className="space-y-6">
-        {job.outfit_items.map((item, idx) => (
-          <div key={item.id} className="card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <StatusIcon status={item.status} />
-                <span className="text-sm font-medium text-white">Outfit {idx + 1}</span>
-                <span className={`text-xs ${statusColor[item.status]}`}>· {item.status}</span>
-              </div>
-              <button
-                id={`regenerate-${item.id}`}
-                onClick={() => regenerate(item.id)}
-                className="btn-ghost flex items-center gap-1.5 text-xs py-1.5 px-3"
-              >
-                <RefreshCw size={11} /> Regenerate
-              </button>
+      {/* Outfit cards */}
+      {job.outfit_items.map((item, idx) => (
+        <div key={item.id} className="card outfit-card fade-up">
+          <div className="outfit-card__header">
+            <div className="outfit-card__title">
+              <StatusDot status={item.status} />
+              <span>Outfit {idx + 1}</span>
+              <span className="outfit-card__status">· {item.status}</span>
             </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {/* Source outfit thumbnail */}
-              {item.outfit_image_url && (
-                <div className="relative rounded-lg overflow-hidden aspect-[3/4] bg-[#0f0f0f] border border-[#2a2a2a]">
-                  <img src={item.outfit_image_url} alt="Source outfit"
-                       className="w-full h-full object-cover opacity-60" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-xs text-neutral-400 px-2 py-1">
-                    Source
-                  </div>
-                </div>
-              )}
-
-              {/* Generated outputs */}
-              {item.generated_images.map(gi => (
-                <div key={gi.id}
-                     className="relative rounded-lg overflow-hidden aspect-[3/4] bg-[#0f0f0f] border border-[#2a2a2a]
-                                cursor-pointer hover:border-neutral-500 transition-colors fade-in group"
-                     onClick={() => setLightbox(gi.cloudinary_url)}>
-                  <img src={gi.cloudinary_url} alt="Generated fashion"
-                       className="w-full h-full object-cover" />
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <a href={gi.cloudinary_url} download target="_blank" rel="noreferrer"
-                       onClick={e => e.stopPropagation()}
-                       className="bg-black/70 p-1.5 rounded-lg text-white block">
-                      <Download size={12} />
-                    </a>
-                  </div>
-                </div>
-              ))}
-
-              {/* Empty slots while processing */}
-              {item.status === 'processing' && item.generated_images.length === 0 && (
-                Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="rounded-lg aspect-[3/4] bg-[#111] border border-[#1a1a1a]
-                                          flex items-center justify-center">
-                    <Loader2 size={16} className="text-neutral-700 animate-spin" />
-                  </div>
-                ))
-              )}
-            </div>
+            <button
+              id={`regenerate-${item.id}`}
+              onClick={() => regenerate(item.id)}
+              className="btn btn-ghost btn-sm"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              Regenerate
+            </button>
           </div>
-        ))}
-      </div>
+
+          <div className="image-grid">
+            {/* Source */}
+            {item.outfit_image_url && (
+              <div className="image-tile image-tile--source">
+                <img src={item.outfit_image_url} alt="Source outfit" />
+                <div className="image-tile__label">Source</div>
+              </div>
+            )}
+
+            {/* Generated */}
+            {item.generated_images.map(gi => (
+              <div key={gi.id} className="image-tile" onClick={() => setLightbox(gi.cloudinary_url)}>
+                <img src={gi.cloudinary_url} alt="Generated" />
+                <a
+                  href={gi.cloudinary_url} download target="_blank" rel="noreferrer"
+                  className="image-tile__download"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </a>
+              </div>
+            ))}
+
+            {/* Placeholders */}
+            {item.status === 'processing' && item.generated_images.length === 0 &&
+              Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="image-tile--placeholder">
+                  <div className="spinner" />
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      ))}
     </main>
   );
 }

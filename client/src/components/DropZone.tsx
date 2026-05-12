@@ -1,7 +1,5 @@
-// Drag-and-drop upload zone component
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X } from 'lucide-react';
 
 interface Props {
   label: string;
@@ -24,35 +22,36 @@ export default function DropZone({ label, hint, accept, multiple = false, files,
   const remove = (idx: number) => onFiles(files.filter((_, i) => i !== idx));
 
   return (
-    <div className="space-y-3">
+    <div>
       <label className="label">{label}</label>
-      <div
-        {...getRootProps()}
-        className={`border border-dashed border-[#2a2a2a] rounded-xl p-6 text-center cursor-pointer
-                    transition-all duration-200 hover:border-neutral-500 hover:bg-[#111]
-                    ${isDragActive ? 'dropzone-active' : ''}`}
-      >
+      <div {...getRootProps()} className={`dropzone ${isDragActive ? 'dropzone--active' : ''}`}>
         <input {...getInputProps()} />
-        <Upload size={20} strokeWidth={1.5} className="mx-auto mb-2 text-neutral-600" />
+        <div className="dropzone__icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
         {isDragActive
-          ? <p className="text-sm text-neutral-400">Drop here…</p>
-          : <p className="text-sm text-neutral-500">
-              Drag files here or <span className="text-neutral-300 underline underline-offset-2">browse</span>
-            </p>
+          ? <p className="dropzone__text">Drop here…</p>
+          : <p className="dropzone__text">Drag & drop or <span>browse</span></p>
         }
-        {hint && <p className="text-xs text-neutral-600 mt-1">{hint}</p>}
+        {hint && <p className="dropzone__hint">{hint}</p>}
       </div>
 
-      {/* File chips */}
       {files.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="file-chips">
           {files.map((f, i) => (
-            <div key={i} className="flex items-center gap-1.5 bg-[#111] border border-[#222] rounded-lg
-                                   px-3 py-1.5 text-xs text-neutral-300">
-              {f.name.length > 22 ? f.name.slice(0, 20) + '…' : f.name}
-              <button onClick={(e) => { e.stopPropagation(); remove(i); }}
-                      className="text-neutral-600 hover:text-white ml-1 transition-colors">
-                <X size={11} />
+            <div key={i} className="file-chip">
+              {f.name.length > 24 ? f.name.slice(0, 22) + '…' : f.name}
+              <button onClick={(e) => { e.stopPropagation(); remove(i); }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
               </button>
             </div>
           ))}
