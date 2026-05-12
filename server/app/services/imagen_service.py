@@ -53,14 +53,21 @@ def generate_fashion_images(
     for model_id in IMAGE_MODELS:
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                print(f"[Imagen] Trying model={model_id}, attempt={attempt}")
+                # Pass the source outfit image as inline data so the model can visually preserve/replicate it exactly
+                contents = [
+                    types.Part.from_bytes(data=outfit_image_bytes, mime_type="image/png"),
+                    "CRITICAL VISUAL INPUT: The uploaded image depicts the exact clothing item. "
+                    "You MUST generate an image of a model wearing this exact garment. The cut, color, texture, material, "
+                    "zippers, buttons, stitching, collar, and overall silhouette must be 100% IDENTICAL to the visual features "
+                    "seen in the reference image.\n\n" + prompt
+                ]
 
                 result = client.models.generate_content(
                     model=model_id,
-                    contents=prompt,
+                    contents=contents,
                     config=types.GenerateContentConfig(
                         response_modalities=["TEXT", "IMAGE"],
-                        temperature=0.9,
+                        temperature=0.7,  # lower temperature slightly for higher consistency/faithfulness
                     ),
                 )
 

@@ -44,6 +44,7 @@ client/.env.*
 # Uploads & Generated Outputs
 # ──────────────────────────────────────────
 server/uploads/
+uploads/
 server/outputs/
 server/temp/
 *.zip
