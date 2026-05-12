@@ -23,14 +23,21 @@ export default function Generate() {
     setLoading(true);
     try {
       const form = new FormData();
-      outfits.forEach(f => form.append('outfit_files', f));
-      refs.forEach(f => form.append('reference_files', f));
+      outfits.forEach(f => form.append('outfit_images', f));
+      refs.forEach(f => form.append('reference_images', f));
       form.append('images_per_outfit', String(count));
-      if (notes) form.append('notes', notes);
+      if (notes) form.append('outfit_names', notes);
+      
       const { data } = await api.post('/jobs/', form, { headers: { 'Content-Type': 'multipart/form-data' } });
       navigate(`/jobs/${data.id}`);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to start job. Please try again.');
+      const detail = err.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        // FastAPI 422 validation errors are arrays
+        setError(detail.map(d => `${d.loc.join('.')}: ${d.msg}`).join(', '));
+      } else {
+        setError(detail || 'Failed to start job. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
