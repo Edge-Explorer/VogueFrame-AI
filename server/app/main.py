@@ -13,11 +13,13 @@ from app.db.session import init_db
 from app.api.v1.router import api_router
 
 
+# Ensure uploads directory exists globally before StaticFiles mounts it
+os.makedirs(os.path.join(os.path.dirname(__file__), "../uploads"), exist_ok=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle handler."""
-    # Ensure uploads directory exists on startup
-    os.makedirs(os.path.join(os.path.dirname(__file__), "../uploads"), exist_ok=True)
     init_db()
     yield
 
