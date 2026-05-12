@@ -1,6 +1,7 @@
 """
 Pydantic schemas for generation jobs and outfit items.
 """
+from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Optional
 from app.models.job import JobStatus, ReferenceCategory
@@ -34,9 +35,11 @@ class OutfitItemOut(BaseModel):
     prompt_used: Optional[str]
     images_requested: int
     error_message: Optional[str]
+    created_at: Optional[datetime] = None
     reference_images: List[ReferenceImageOut] = []
     generated_images: List[GeneratedImageOut] = []
     model_config = {"from_attributes": True}
+
 
 
 # ── Generation Job ────────────────────────────────────────────────────────────
@@ -46,8 +49,6 @@ class JobCreateResponse(BaseModel):
     status: JobStatus
     message: str
 
-
-from datetime import datetime
 
 class JobStatusOut(BaseModel):
     id: int

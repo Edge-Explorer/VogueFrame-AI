@@ -5,6 +5,7 @@ import Auth      from './pages/Auth';
 import Generate  from './pages/Generate';
 import Jobs      from './pages/Jobs';
 import JobDetail from './pages/JobDetail';
+import Gallery   from './pages/Gallery';
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -30,6 +31,12 @@ export default function App() {
             <Protected>
               <Navbar />
               <Generate />
+            </Protected>
+          } />
+          <Route path="/gallery" element={
+            <Protected>
+              <Navbar />
+              <Gallery />
             </Protected>
           } />
           <Route path="/jobs" element={

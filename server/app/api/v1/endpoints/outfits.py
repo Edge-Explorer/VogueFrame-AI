@@ -7,11 +7,27 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.models.job import OutfitItem, JobStatus
+from app.models.job import OutfitItem, JobStatus, GenerationJob
 from app.schemas.job import OutfitItemOut, RegenerateRequest
 from app.services.generation_service import process_outfit_item
 
 router = APIRouter()
+
+
+@router.get("/", response_model=list[OutfitItemOut])
+def list_user_outfits(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all outfit items across all jobs for the current user, newest first."""
+    items = (
+        db.query(OutfitItem)
+        .join(GenerationJob)
+        .filter(GenerationJob.user_id == current_user.id)
+        .order_by(OutfitItem.created_at.desc())
+        .all()
+    )
+    return items
 
 
 @router.get("/{outfit_id}", response_model=OutfitItemOut)

@@ -21,6 +21,10 @@ export default function Navbar() {
             className={`navbar__link ${pathname === '/' ? 'navbar__link--active' : ''}`}>
             Generate
           </Link>
+          <Link to="/gallery"
+            className={`navbar__link ${pathname.startsWith('/gallery') ? 'navbar__link--active' : ''}`}>
+            Gallery
+          </Link>
           <Link to="/jobs"
             className={`navbar__link ${pathname.startsWith('/jobs') ? 'navbar__link--active' : ''}`}>
             Jobs
