@@ -15,7 +15,18 @@ from app.services.imagen_service import generate_fashion_images
 from app.services.cloudinary_service import upload_generated_image
 
 
+import os
+
 def _fetch_image_bytes(url: str) -> bytes:
+    # If it's a local URL from our overridden cloudinary service, read it from disk directly
+    # to prevent blocking the event loop with an HTTP request to ourselves.
+    if url.startswith("http://localhost:8000/uploads/"):
+        relative_path = url.replace("http://localhost:8000/uploads/", "")
+        local_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../uploads", relative_path))
+        with open(local_path, "rb") as f:
+            return f.read()
+
+    # Fallback for real URLs (e.g. if we switch back to Cloudinary)
     response = requests.get(url, timeout=30)
     response.raise_for_status()
     return response.content
