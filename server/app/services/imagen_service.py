@@ -1,14 +1,14 @@
 """
 Google GenAI image generation service.
 
-Uses Gemini 2.0 Flash image generation (gemini-2.0-flash-preview-image-generation)
-which is available on all standard Gemini API keys — unlike Imagen which requires
-special allowlist access.
+Uses the confirmed-available image generation models from this API key:
+  - gemini-2.5-flash-image (primary)
+  - gemini-3.1-flash-image-preview (fallback)
+  - nano-banana-pro-preview (final fallback)
 
-Falls back to gemini-2.0-flash-exp if the preview model is unavailable.
+These are confirmed via ListModels and support generateContent with IMAGE modality.
 """
 import time
-import base64
 from google import genai
 from google.genai import types
 
@@ -17,12 +17,16 @@ from app.core.config import settings
 # Initialize GenAI Client using GEMINI_API_KEY from AI Studio
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-# Gemini 2.0 Flash with native image generation — works on all standard API keys
-PRIMARY_MODEL = "gemini-2.0-flash-preview-image-generation"
-FALLBACK_MODEL = "gemini-2.0-flash-exp"
+# Confirmed image-capable models from this API key (ordered by preference)
+IMAGE_MODELS = [
+    "gemini-2.5-flash-image",
+    "gemini-3.1-flash-image-preview",
+    "nano-banana-pro-preview",
+    "gemini-3-pro-image-preview",
+]
 
-MAX_RETRIES = 3
-RETRY_DELAY_SECONDS = 4
+MAX_RETRIES = 2
+RETRY_DELAY_SECONDS = 3
 
 
 def generate_fashion_images(
@@ -31,10 +35,10 @@ def generate_fashion_images(
     count: int = 1,
 ) -> list[bytes]:
     """
-    Generate fashion images using Gemini 2.0 Flash image generation.
-    
-    Returns a list of raw PNG bytes for each generated image.
-    Retries on transient 503 / 429 errors up to MAX_RETRIES times.
+    Generate fashion images using Gemini image generation models.
+
+    Returns a list of raw image bytes for each generated image.
+    Tries models in order, retrying on transient errors.
 
     Args:
         prompt: Full structured prompt from the prompt engine.
@@ -42,67 +46,67 @@ def generate_fashion_images(
         count: Number of images to generate (1-4).
 
     Raises:
-        RuntimeError: On permanent API failure after all retries exhausted.
+        RuntimeError: On permanent failure across all models.
     """
-    models_to_try = [PRIMARY_MODEL, FALLBACK_MODEL]
     last_error: Exception | None = None
 
-    for model_id in models_to_try:
+    for model_id in IMAGE_MODELS:
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                print(f"[Imagen] Attempting generation with model={model_id}, attempt={attempt}")
+                print(f"[Imagen] Trying model={model_id}, attempt={attempt}")
 
                 result = client.models.generate_content(
                     model=model_id,
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_modalities=["TEXT", "IMAGE"],
-                        temperature=1.0,
+                        temperature=0.9,
                     ),
                 )
 
                 image_bytes_list: list[bytes] = []
-                for part in result.candidates[0].content.parts:
-                    if part.inline_data is not None and part.inline_data.data:
-                        image_bytes_list.append(part.inline_data.data)
-                        if len(image_bytes_list) >= count:
-                            break
+                if result.candidates:
+                    for part in result.candidates[0].content.parts:
+                        if part.inline_data is not None and part.inline_data.data:
+                            image_bytes_list.append(part.inline_data.data)
+                            if len(image_bytes_list) >= count:
+                                break
 
                 if not image_bytes_list:
                     raise RuntimeError(
-                        "API returned 0 images. The prompt may have been safety-filtered. "
-                        "Try a more descriptive, clothing-focused prompt."
+                        "API returned 0 images — prompt may be safety-filtered or model "
+                        "does not support image output modality with this configuration."
                     )
 
-                print(f"[Imagen] Success: generated {len(image_bytes_list)} image(s) with {model_id}.")
+                print(f"[Imagen] ✅ Success with {model_id}: {len(image_bytes_list)} image(s) generated.")
                 return image_bytes_list
 
             except RuntimeError:
-                raise  # safety filter — don't retry
+                raise  # Don't retry safety filter errors
 
             except Exception as exc:
                 last_error = exc
                 err_str = str(exc)
 
-                # Check if this model doesn't exist — skip to fallback immediately
+                # Model doesn't exist or isn't accessible — skip immediately
                 if any(code in err_str for code in ("404", "NOT_FOUND")):
-                    print(f"[Imagen] Model {model_id} not available (404). Trying fallback…")
-                    break  # break inner retry loop → try next model
+                    print(f"[Imagen] ⚠ Model {model_id} returned 404. Skipping to next model.")
+                    break  # inner retry loop → try next model
 
-                # Retry on transient errors
+                # Transient error — retry with backoff
                 if attempt < MAX_RETRIES and any(
                     code in err_str for code in ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED")
                 ):
                     wait = RETRY_DELAY_SECONDS * attempt
-                    print(f"[Imagen] Attempt {attempt} failed ({err_str[:100]}). Retrying in {wait}s…")
+                    print(f"[Imagen] ⚠ Transient error on attempt {attempt}: {err_str[:100]}. Retrying in {wait}s…")
                     time.sleep(wait)
                     continue
 
-                # Permanent error on this model
-                print(f"[Imagen] Model {model_id} failed permanently: {err_str[:200]}")
-                break  # try fallback model
+                # Permanent failure on this model
+                print(f"[Imagen] ✗ Model {model_id} failed: {err_str[:150]}")
+                break  # try next model
 
     raise RuntimeError(
-        f"Image generation failed with all models after {MAX_RETRIES} attempts per model. "
+        f"Image generation failed across all {len(IMAGE_MODELS)} models. "
         f"Last error: {last_error}"
     )
