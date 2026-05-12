@@ -14,7 +14,8 @@ from app.core.config import settings
 client = genai.Client(api_key=settings.GEMINI_API_KEY if settings.GEMINI_API_KEY else None)
 
 # We map to the current stable recommended image generation endpoint under the GenAI API
-MODEL_ID = "imagen-3.0-generate-001"
+MODEL_ID = "models/imagen-4.0-generate-001"
+
 
 
 def generate_fashion_images(
@@ -40,7 +41,8 @@ def generate_fashion_images(
             aspect_ratio="3:4",
             output_mime_type="image/png",
             person_generation="ALLOW_ADULT",
-            safety_filter_level="BLOCK_MEDIUM_AND_ABOVE",
+            safety_filter_level="BLOCK_LOW_AND_ABOVE",
+
         ),
     )
 
