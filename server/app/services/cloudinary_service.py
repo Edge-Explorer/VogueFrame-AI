@@ -7,7 +7,7 @@ import aiofiles
 from fastapi import UploadFile
 import uuid
 
-UPLOAD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../uploads"))
+UPLOAD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../uploads"))
 
 
 def _ensure_dir(folder: str):

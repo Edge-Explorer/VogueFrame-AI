@@ -5,6 +5,7 @@ import api from '../lib/api';
 interface GeneratedImage { id: string; url: string; consistency_score: number | null; }
 interface OutfitItem {
   id: string; status: string; outfit_image_url: string;
+  error_message?: string;
   generated_images: GeneratedImage[];
 }
 interface Job {
@@ -141,6 +142,12 @@ export default function JobDetail() {
               Regenerate
             </button>
           </div>
+
+          {item.status === 'failed' && item.error_message && (
+            <div style={{ padding: '0 20px 20px', color: 'var(--color-primary)', fontSize: '0.875rem' }}>
+              <strong>Error:</strong> {item.error_message}
+            </div>
+          )}
 
           <div className="image-grid">
             {/* Source */}

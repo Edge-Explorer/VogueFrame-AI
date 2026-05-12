@@ -47,12 +47,15 @@ class JobCreateResponse(BaseModel):
     message: str
 
 
+from datetime import datetime
+
 class JobStatusOut(BaseModel):
     id: int
     status: JobStatus
     total_outfits: int
     completed_outfits: int
     failed_outfits: int
+    created_at: datetime
     error_message: Optional[str]
     outfits: List[OutfitItemOut] = []
     model_config = {"from_attributes": True}
