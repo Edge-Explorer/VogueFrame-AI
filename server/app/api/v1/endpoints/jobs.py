@@ -1,8 +1,12 @@
 """
 Jobs endpoints — create batch generation jobs, check status, list jobs.
+
+Route ordering is important in FastAPI:
+  GET /       must come before GET /{job_id} to avoid shadowing.
 """
 import zipfile
 import io
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy.orm import Session
@@ -15,39 +19,72 @@ from app.schemas.job import JobCreateResponse, JobStatusOut
 from app.services.cloudinary_service import upload_outfit_image, upload_reference_image
 from app.services.generation_service import process_outfit_item
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
+# ── Background worker ──────────────────────────────────────────────────────────
 
 async def _run_job(job_id: int, db: Session) -> None:
     """Background task: process all outfit items in the job sequentially."""
     job = db.query(GenerationJob).filter(GenerationJob.id == job_id).first()
     if not job:
+        logger.error(f"[Job {job_id}] Not found in DB — skipping background run.")
         return
+
+    logger.info(f"[Job {job_id}] Starting background processing for {len(job.outfits)} outfit(s).")
     job.status = JobStatus.PROCESSING
     db.commit()
 
     for outfit_item in job.outfits:
-        process_outfit_item(outfit_item, db)
-        if outfit_item.status == JobStatus.COMPLETED:
-            job.completed_outfits += 1
-        else:
+        try:
+            process_outfit_item(outfit_item, db)
+            if outfit_item.status == JobStatus.COMPLETED:
+                job.completed_outfits += 1
+                logger.info(f"[Job {job_id}] Outfit {outfit_item.id} completed.")
+            else:
+                job.failed_outfits += 1
+                logger.warning(f"[Job {job_id}] Outfit {outfit_item.id} failed: {outfit_item.error_message}")
+        except Exception as exc:
             job.failed_outfits += 1
-        db.commit()
+            outfit_item.status = JobStatus.FAILED
+            outfit_item.error_message = str(exc)
+            logger.exception(f"[Job {job_id}] Uncaught error processing outfit {outfit_item.id}: {exc}")
+        finally:
+            db.commit()
 
     job.status = (
         JobStatus.COMPLETED if job.failed_outfits == 0 else JobStatus.FAILED
     )
     db.commit()
+    logger.info(f"[Job {job_id}] Finished. Status: {job.status.value}. "
+                f"Completed: {job.completed_outfits}, Failed: {job.failed_outfits}")
+
+
+# ── Routes ─────────────────────────────────────────────────────────────────────
+
+@router.get("/", response_model=List[JobStatusOut])
+def list_jobs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all generation jobs for the current user, newest first."""
+    return (
+        db.query(GenerationJob)
+        .filter(GenerationJob.user_id == current_user.id)
+        .order_by(GenerationJob.created_at.desc())
+        .all()
+    )
 
 
 @router.post("/", response_model=JobCreateResponse, status_code=201)
 async def create_job(
     background_tasks: BackgroundTasks,
     outfit_images: List[UploadFile] = File(..., description="One or more outfit images"),
-    reference_images: Optional[List[UploadFile]] = File(None, description="Reference images"),
+    reference_images: Optional[List[UploadFile]] = File(None, description="Optional reference images"),
     reference_categories: Optional[str] = Form(
         None,
-        description='Comma-separated categories for each reference image: model,background,pose,lighting,vibe,general'
+        description="Comma-separated categories per reference image: model,background,pose,lighting,vibe,general"
     ),
     outfit_names: Optional[str] = Form(None, description="Comma-separated outfit labels or SKUs"),
     images_per_outfit: int = Form(1, ge=1, le=4),
@@ -59,11 +96,9 @@ async def create_job(
     Accepts multiple outfit images and optional reference images.
     Processing runs asynchronously in the background.
     """
-    # Parse optional metadata
     names = [n.strip() for n in outfit_names.split(",")] if outfit_names else []
     categories_raw = [c.strip() for c in reference_categories.split(",")] if reference_categories else []
 
-    # Create the job
     job = GenerationJob(
         user_id=current_user.id,
         status=JobStatus.PENDING,
@@ -72,8 +107,8 @@ async def create_job(
     db.add(job)
     db.commit()
     db.refresh(job)
+    logger.info(f"[Job {job.id}] Created for user {current_user.id} with {len(outfit_images)} outfit(s).")
 
-    # Upload outfit images and create OutfitItem records
     for idx, outfit_file in enumerate(outfit_images):
         outfit_url = await upload_outfit_image(outfit_file, job.id, idx)
         item = OutfitItem(
@@ -83,9 +118,8 @@ async def create_job(
             images_requested=images_per_outfit,
         )
         db.add(item)
-        db.flush()  # get item.id
+        db.flush()
 
-        # Associate reference images with this item
         if reference_images:
             for ref_idx, ref_file in enumerate(reference_images):
                 ref_url = await upload_reference_image(ref_file, job.id, ref_idx)
@@ -97,8 +131,6 @@ async def create_job(
                 db.add(ReferenceImage(outfit_item_id=item.id, url=ref_url, category=cat))
 
     db.commit()
-
-    # Kick off background processing
     background_tasks.add_task(_run_job, job.id, db)
 
     return JobCreateResponse(
@@ -131,7 +163,7 @@ async def create_job_from_zip(
                 extracted.append((name, zf.read(name)))
 
     if not extracted:
-        raise HTTPException(status_code=400, detail="No valid image files found in ZIP")
+        raise HTTPException(status_code=400, detail="No valid image files found in ZIP.")
 
     categories_raw = [c.strip() for c in reference_categories.split(",")] if reference_categories else []
 
@@ -143,16 +175,16 @@ async def create_job_from_zip(
     db.add(job)
     db.commit()
     db.refresh(job)
+    logger.info(f"[Job {job.id}] ZIP upload: {len(extracted)} outfit(s) extracted.")
 
-    import cloudinary.uploader
+    # Use local file storage (same as regular upload)
     for idx, (filename, img_bytes) in enumerate(extracted):
-        result = cloudinary.uploader.upload(
-            img_bytes,
-            folder=f"vogueframe/jobs/{job.id}/outfits",
-            public_id=f"outfit_{idx}",
-            resource_type="image",
-        )
-        outfit_url = result["secure_url"]
+        # Write bytes to a temp-like UploadFile wrapper for reuse
+        import io as _io
+        from fastapi.datastructures import UploadFile as _UF
+        fake_file = UploadFile(filename=filename, file=_io.BytesIO(img_bytes))
+        outfit_url = await upload_outfit_image(fake_file, job.id, idx)
+
         item = OutfitItem(
             job_id=job.id,
             name=filename,
@@ -194,19 +226,5 @@ def get_job_status(
         GenerationJob.user_id == current_user.id,
     ).first()
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found.")
     return job
-
-
-@router.get("/", response_model=List[JobStatusOut])
-def list_jobs(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """List all generation jobs for the current user."""
-    return (
-        db.query(GenerationJob)
-        .filter(GenerationJob.user_id == current_user.id)
-        .order_by(GenerationJob.created_at.desc())
-        .all()
-    )
