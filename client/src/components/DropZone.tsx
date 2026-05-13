@@ -21,9 +21,14 @@ export default function DropZone({ label, hint, accept, multiple = false, files,
 
   const remove = (idx: number) => onFiles(files.filter((_, i) => i !== idx));
 
+  const formatSize = (bytes: number) => {
+    if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / 1024).toFixed(0) + ' KB';
+  };
+
   return (
     <div>
-      <label className="label">{label}</label>
+      {label && <label className="label">{label}</label>}
       <div {...getRootProps()} className={`dropzone ${isDragActive ? 'dropzone--active' : ''}`}>
         <input {...getInputProps()} />
         <div className="dropzone__icon">
@@ -42,19 +47,62 @@ export default function DropZone({ label, hint, accept, multiple = false, files,
       </div>
 
       {files.length > 0 && (
-        <div className="file-chips">
-          {files.map((f, i) => (
-            <div key={i} className="file-chip">
-              {f.name.length > 24 ? f.name.slice(0, 22) + '…' : f.name}
-              <button onClick={(e) => { e.stopPropagation(); remove(i); }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-          ))}
+        <div className="file-list">
+          {files.map((f, i) => {
+            const isZip = f.name.toLowerCase().endsWith('.zip');
+            const isImage = f.type.startsWith('image/') || f.name.match(/\.(jpg|jpeg|png|webp)$/i);
+            let previewUrl = '';
+            if (isImage) {
+              try { previewUrl = URL.createObjectURL(f); } catch (e) {}
+            }
+
+            return (
+              <div key={i} className="file-item fade-up">
+                <div className="file-item__left">
+                  {isImage && previewUrl ? (
+                    <img src={previewUrl} className="file-item__preview" alt="" />
+                  ) : (
+                    <div className="file-item__icon">
+                      {isZip ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="4" width="20" height="16" rx="2" />
+                          <path d="M10 4v4" />
+                          <path d="M14 4v4" />
+                          <path d="M12 8v4" />
+                          <circle cx="12" cy="14" r="1" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                          <polyline points="13 2 13 9 20 9" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="file-item__info">
+                    <p className="file-item__name" title={f.name}>{f.name}</p>
+                    <div className="file-item__meta">
+                      <span>{formatSize(f.size)}</span>
+                      <span className="file-item__badge">{isZip ? 'Archive' : 'Image'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="file-item__remove"
+                  onClick={(e) => { e.stopPropagation(); remove(i); }}
+                  title="Remove file"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
