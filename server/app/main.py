@@ -50,6 +50,17 @@ if not os.getenv("VERCEL"):
     app.mount("/uploads", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "../uploads")), name="uploads")
 
 
+@app.get("/", tags=["root"])
+async def root():
+    return {
+        "welcome": "VogueFrame AI Live Production Engine",
+        "engine": "Nano Banana 2",
+        "docs_url": "/docs",
+        "health_check": "/health",
+        "api_v1": "/api/v1"
+    }
+
+
 @app.get("/health", tags=["health"])
 async def health_check():
     return {"status": "ok", "service": "vogueframe-ai"}
