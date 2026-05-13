@@ -109,6 +109,18 @@ async def create_job(
     db.refresh(job)
     logger.info(f"[Job {job.id}] Created for user {current_user.id} with {len(outfit_images)} outfit(s).")
 
+    # Pre-upload reference images once per job to avoid stream exhaustion and redundant network calls
+    uploaded_refs = []
+    if reference_images:
+        for ref_idx, ref_file in enumerate(reference_images):
+            ref_url = await upload_reference_image(ref_file, job.id, ref_idx)
+            cat_raw = categories_raw[ref_idx] if ref_idx < len(categories_raw) else "general"
+            try:
+                cat = ReferenceCategory(cat_raw)
+            except ValueError:
+                cat = ReferenceCategory.GENERAL
+            uploaded_refs.append({"url": ref_url, "category": cat})
+
     for idx, outfit_file in enumerate(outfit_images):
         outfit_url = await upload_outfit_image(outfit_file, job.id, idx)
         item = OutfitItem(
@@ -120,15 +132,8 @@ async def create_job(
         db.add(item)
         db.flush()
 
-        if reference_images:
-            for ref_idx, ref_file in enumerate(reference_images):
-                ref_url = await upload_reference_image(ref_file, job.id, ref_idx)
-                cat_raw = categories_raw[ref_idx] if ref_idx < len(categories_raw) else "general"
-                try:
-                    cat = ReferenceCategory(cat_raw)
-                except ValueError:
-                    cat = ReferenceCategory.GENERAL
-                db.add(ReferenceImage(outfit_item_id=item.id, url=ref_url, category=cat))
+        for ref_data in uploaded_refs:
+            db.add(ReferenceImage(outfit_item_id=item.id, url=ref_data["url"], category=ref_data["category"]))
 
     db.commit()
     background_tasks.add_task(_run_job, job.id, db)
@@ -177,6 +182,18 @@ async def create_job_from_zip(
     db.refresh(job)
     logger.info(f"[Job {job.id}] ZIP upload: {len(extracted)} outfit(s) extracted.")
 
+    # Pre-upload reference images once per job to avoid stream exhaustion and redundant network calls
+    uploaded_refs = []
+    if reference_images:
+        for ref_idx, ref_file in enumerate(reference_images):
+            ref_url = await upload_reference_image(ref_file, job.id, ref_idx)
+            cat_raw = categories_raw[ref_idx] if ref_idx < len(categories_raw) else "general"
+            try:
+                cat = ReferenceCategory(cat_raw)
+            except ValueError:
+                cat = ReferenceCategory.GENERAL
+            uploaded_refs.append({"url": ref_url, "category": cat})
+
     # Use local file storage (same as regular upload)
     for idx, (filename, img_bytes) in enumerate(extracted):
         # Write bytes to a temp-like UploadFile wrapper for reuse
@@ -194,15 +211,8 @@ async def create_job_from_zip(
         db.add(item)
         db.flush()
 
-        if reference_images:
-            for ref_idx, ref_file in enumerate(reference_images):
-                ref_url = await upload_reference_image(ref_file, job.id, ref_idx)
-                cat_raw = categories_raw[ref_idx] if ref_idx < len(categories_raw) else "general"
-                try:
-                    cat = ReferenceCategory(cat_raw)
-                except ValueError:
-                    cat = ReferenceCategory.GENERAL
-                db.add(ReferenceImage(outfit_item_id=item.id, url=ref_url, category=cat))
+        for ref_data in uploaded_refs:
+            db.add(ReferenceImage(outfit_item_id=item.id, url=ref_data["url"], category=ref_data["category"]))
 
     db.commit()
     background_tasks.add_task(_run_job, job.id, db)
