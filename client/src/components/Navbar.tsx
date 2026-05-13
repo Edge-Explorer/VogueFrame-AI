@@ -12,7 +12,7 @@ export default function Navbar() {
     <header className="navbar">
       <div className="navbar__inner">
         <Link to="/" className="navbar__brand">
-          <span className="navbar__brand-dot" />
+          <img src="/logo.png" alt="Logo" style={{ width: 22, height: 22, borderRadius: 5, border: '1px solid var(--border)' }} />
           VogueFrame AI
         </Link>
 
