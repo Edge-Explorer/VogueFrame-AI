@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, B
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
-from app.db.session import get_db
+from app.db.session import get_db, SessionLocal
 from app.models.user import User
 from app.models.job import GenerationJob, OutfitItem, ReferenceImage, JobStatus, ReferenceCategory
 from app.schemas.job import JobCreateResponse, JobStatusOut
@@ -25,40 +25,44 @@ router = APIRouter()
 
 # ── Background worker ──────────────────────────────────────────────────────────
 
-async def _run_job(job_id: int, db: Session) -> None:
-    """Background task: process all outfit items in the job sequentially."""
-    job = db.query(GenerationJob).filter(GenerationJob.id == job_id).first()
-    if not job:
-        logger.error(f"[Job {job_id}] Not found in DB — skipping background run.")
-        return
+async def _run_job(job_id: int) -> None:
+    """Background task: process all outfit items in the job sequentially using a thread-safe DB session."""
+    db = SessionLocal()
+    try:
+        job = db.query(GenerationJob).filter(GenerationJob.id == job_id).first()
+        if not job:
+            logger.error(f"[Job {job_id}] Not found in DB — skipping background run.")
+            return
 
-    logger.info(f"[Job {job_id}] Starting background processing for {len(job.outfits)} outfit(s).")
-    job.status = JobStatus.PROCESSING
-    db.commit()
+        logger.info(f"[Job {job_id}] Starting background processing for {len(job.outfits)} outfit(s).")
+        job.status = JobStatus.PROCESSING
+        db.commit()
 
-    for outfit_item in job.outfits:
-        try:
-            process_outfit_item(outfit_item, db)
-            if outfit_item.status == JobStatus.COMPLETED:
-                job.completed_outfits += 1
-                logger.info(f"[Job {job_id}] Outfit {outfit_item.id} completed.")
-            else:
+        for outfit_item in job.outfits:
+            try:
+                process_outfit_item(outfit_item, db)
+                if outfit_item.status == JobStatus.COMPLETED:
+                    job.completed_outfits += 1
+                    logger.info(f"[Job {job_id}] Outfit {outfit_item.id} completed.")
+                else:
+                    job.failed_outfits += 1
+                    logger.warning(f"[Job {job_id}] Outfit {outfit_item.id} failed: {outfit_item.error_message}")
+            except Exception as exc:
                 job.failed_outfits += 1
-                logger.warning(f"[Job {job_id}] Outfit {outfit_item.id} failed: {outfit_item.error_message}")
-        except Exception as exc:
-            job.failed_outfits += 1
-            outfit_item.status = JobStatus.FAILED
-            outfit_item.error_message = str(exc)
-            logger.exception(f"[Job {job_id}] Uncaught error processing outfit {outfit_item.id}: {exc}")
-        finally:
-            db.commit()
+                outfit_item.status = JobStatus.FAILED
+                outfit_item.error_message = str(exc)
+                logger.exception(f"[Job {job_id}] Uncaught error processing outfit {outfit_item.id}: {exc}")
+            finally:
+                db.commit()
 
-    job.status = (
-        JobStatus.COMPLETED if job.failed_outfits == 0 else JobStatus.FAILED
-    )
-    db.commit()
-    logger.info(f"[Job {job_id}] Finished. Status: {job.status.value}. "
-                f"Completed: {job.completed_outfits}, Failed: {job.failed_outfits}")
+        job.status = (
+            JobStatus.COMPLETED if job.failed_outfits == 0 else JobStatus.FAILED
+        )
+        db.commit()
+        logger.info(f"[Job {job_id}] Finished. Status: {job.status.value}. "
+                    f"Completed: {job.completed_outfits}, Failed: {job.failed_outfits}")
+    finally:
+        db.close()
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
@@ -136,7 +140,7 @@ async def create_job(
             db.add(ReferenceImage(outfit_item_id=item.id, url=ref_data["url"], category=ref_data["category"]))
 
     db.commit()
-    background_tasks.add_task(_run_job, job.id, db)
+    background_tasks.add_task(_run_job, job.id)
 
     return JobCreateResponse(
         job_id=job.id,
@@ -215,7 +219,7 @@ async def create_job_from_zip(
             db.add(ReferenceImage(outfit_item_id=item.id, url=ref_data["url"], category=ref_data["category"]))
 
     db.commit()
-    background_tasks.add_task(_run_job, job.id, db)
+    background_tasks.add_task(_run_job, job.id)
 
     return JobCreateResponse(
         job_id=job.id,

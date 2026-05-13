@@ -5,13 +5,48 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
-from app.db.session import get_db
+from app.db.session import get_db, SessionLocal
 from app.models.user import User
 from app.models.job import OutfitItem, JobStatus, GenerationJob
 from app.schemas.job import OutfitItemOut, RegenerateRequest
 from app.services.generation_service import process_outfit_item
 
 router = APIRouter()
+
+
+def _run_regenerate(outfit_id: int) -> None:
+    """Thread-safe background worker for regenerating a single outfit."""
+    db = SessionLocal()
+    try:
+        item = db.query(OutfitItem).filter(OutfitItem.id == outfit_id).first()
+        if not item:
+            return
+
+        job = item.job
+        if job and job.status != JobStatus.PROCESSING:
+            job.status = JobStatus.PROCESSING
+            db.commit()
+
+        print(f"[Regenerate] Starting background generation for outfit {outfit_id}...")
+        process_outfit_item(item, db)
+        print(f"[Regenerate] Finished generation for outfit {outfit_id}. Status: {item.status.value}")
+
+        # Recalculate parent job overall status and counts
+        if job:
+            completed = sum(1 for o in job.outfits if o.status == JobStatus.COMPLETED)
+            failed = sum(1 for o in job.outfits if o.status == JobStatus.FAILED)
+            job.completed_outfits = completed
+            job.failed_outfits = failed
+
+            # If all outfits are done processing
+            if all(o.status in (JobStatus.COMPLETED, JobStatus.FAILED) for o in job.outfits):
+                job.status = JobStatus.COMPLETED if failed == 0 else JobStatus.FAILED
+            db.commit()
+
+    except Exception as e:
+        print(f"[Regenerate] Uncaught error worker outfit {outfit_id}: {e}")
+    finally:
+        db.close()
 
 
 @router.get("/", response_model=list[OutfitItemOut])
@@ -60,12 +95,13 @@ def regenerate_outfit(
         raise HTTPException(status_code=404, detail="Outfit item not found")
 
     # Reset state for regeneration
-    item.status = JobStatus.PENDING
+    item.status = JobStatus.PROCESSING
     item.error_message = None
     item.images_requested = payload.images_count
     db.commit()
 
-    background_tasks.add_task(process_outfit_item, item, db)
+    # Pass the ID instead of the SQLAlchemy object to avoid detached instance errors across threads
+    background_tasks.add_task(_run_regenerate, item.id)
 
     return item
 
