@@ -45,6 +45,14 @@ export default function Generate() {
       navigate(`/jobs/${data.job_id}`);
     } catch (err: any) {
       const detail = err.response?.data?.detail;
+      
+      // Handle Vercel Hobby 10s Timeout limit for heavy ZIP uploads
+      if (err.response?.status === 504 || err.message.includes('timeout')) {
+        window.alert("Your batch upload is large and has been safely queued in the background!\n\nRedirecting you to the Jobs page to track its progress.");
+        navigate('/jobs');
+        return;
+      }
+
       if (Array.isArray(detail)) {
         // FastAPI 422 validation errors are arrays
         setError(detail.map(d => `${d.loc.join('.')}: ${d.msg}`).join(', '));
