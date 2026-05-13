@@ -48,9 +48,35 @@ export default function JobDetail() {
     return () => clearInterval(t);
   }, [fetchJob, job?.status]);
 
-  const regenerate = async (outfitId: string) => {
-    await api.post(`/outfits/${outfitId}/regenerate`);
-    fetchJob();
+  const regenerate = async (outfitId: string, count: number) => {
+    try {
+      await api.post(`/outfits/${outfitId}/regenerate`, {
+        outfit_item_id: parseInt(outfitId, 10),
+        images_count: count || 2,
+      });
+      fetchJob();
+    } catch (err: any) {
+      alert("Failed to regenerate: " + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const downloadImage = async (url: string, filename: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename || 'vogueframe-generated.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      window.open(url, '_blank');
+    }
   };
 
   if (loading) return (
@@ -76,6 +102,18 @@ export default function JobDetail() {
       {lightbox && (
         <div className="lightbox" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="Generated fashion" />
+          <button
+            className="btn btn-primary"
+            style={{ position: 'absolute', bottom: 40, zIndex: 100, display: 'flex', alignItems: 'center', gap: 8 }}
+            onClick={(e) => downloadImage(lightbox, 'vogueframe-generated.png', e)}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download High-Res Image
+          </button>
         </div>
       )}
 
@@ -132,7 +170,7 @@ export default function JobDetail() {
             </div>
             <button
               id={`regenerate-${item.id}`}
-              onClick={() => regenerate(item.id)}
+              onClick={() => regenerate(item.id, (item as any).images_requested || 2)}
               className="btn btn-ghost btn-sm"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -162,17 +200,17 @@ export default function JobDetail() {
             {item.generated_images?.map(gi => (
               <div key={gi.id} className="image-tile" onClick={() => setLightbox(gi.url)}>
                 <img src={gi.url} alt="Generated" />
-                <a
-                  href={gi.url} download target="_blank" rel="noreferrer"
+                <button
                   className="image-tile__download"
-                  onClick={e => e.stopPropagation()}
+                  onClick={e => downloadImage(gi.url, `vogueframe-outfit-${idx+1}.png`, e)}
+                  title="Download Image"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="7 10 12 15 17 10"/>
                     <line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
-                </a>
+                </button>
               </div>
             ))}
 

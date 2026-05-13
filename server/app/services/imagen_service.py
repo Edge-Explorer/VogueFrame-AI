@@ -69,7 +69,13 @@ def generate_fashion_images(
                 if reference_images_bytes:
                     for i, ref_bytes in enumerate(reference_images_bytes):
                         contents.append(types.Part.from_bytes(data=ref_bytes, mime_type="image/png"))
-                        contents.append(f"REFERENCE IMAGE {i+2}: Use this image as a strong reference for the background environment, aesthetic, and lighting style.")
+                        contents.append(
+                            f"REFERENCE IMAGE {i+2} (Background & Atmosphere): You MUST place the model directly inside this exact environment/setting. "
+                            "CRITICAL QUALITY INSTRUCTION: Ensure seamless, hyper-realistic compositing. The model must NOT look pasted or edited in. "
+                            "Accurately simulate ambient light bounce from the background onto the model's skin and clothing. "
+                            "Match the exact color grading, cinematic atmosphere, black levels, and depth of field of this reference image. "
+                            "Render realistic contact shadows on the ground and soft rim lighting from the scene's light sources."
+                        )
 
                 contents.append("\n\nFINAL INSTRUCTIONS: " + prompt)
 
