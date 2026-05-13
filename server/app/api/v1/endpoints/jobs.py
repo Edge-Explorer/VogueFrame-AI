@@ -15,7 +15,7 @@ from app.core.deps import get_current_user
 from app.db.session import get_db, SessionLocal
 from app.models.user import User
 from app.models.job import GenerationJob, OutfitItem, ReferenceImage, JobStatus, ReferenceCategory
-from app.schemas.job import JobCreateResponse, JobStatusOut
+from app.schemas.job import JobCreateResponse, JobStatusOut, JobSummaryOut
 from app.services.cloudinary_service import upload_outfit_image, upload_reference_image
 from app.services.generation_service import process_outfit_item
 
@@ -67,7 +67,7 @@ async def _run_job(job_id: int) -> None:
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
-@router.get("/", response_model=List[JobStatusOut])
+@router.get("/", response_model=List[JobSummaryOut])
 def list_jobs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

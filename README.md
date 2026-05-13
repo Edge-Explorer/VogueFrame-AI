@@ -161,6 +161,7 @@ npm run dev
 
 1. **Sequential Batch Loop:** Currently, batches are processed sequentially using FastAPI `BackgroundTasks`. While incredibly stable for medium-scale evaluation validation, massive enterprise deployments should transition to a dedicated Redis + Celery distributed queue cluster to parallelize ingestion across multiple machine instances.
 2. **S3 / Remote Cloud Volume Persistence:** Images are stored inside the internal `server/uploads/` storage system. Future production iterations can integrate `boto3` modules to instantly stream input/output visual data directly to highly scalable AWS S3 or Cloudflare R2 object buckets.
+3. **Serverless Response Payload Compaction:** Vercel serverless environments enforce a strict 4.5 MB output ceiling per response execution. To support massive history backlogs without triggering `413 FUNCTION_PAYLOAD_TOO_LARGE` errors, our list routes implement targeted serialization filters (`JobSummaryOut`) that strip heavy array trees during bulk catalog retrievals.
 
 ---
 

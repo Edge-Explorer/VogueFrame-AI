@@ -50,6 +50,17 @@ class JobCreateResponse(BaseModel):
     message: str
 
 
+class JobSummaryOut(BaseModel):
+    id: int
+    status: JobStatus
+    total_outfits: int
+    completed_outfits: int
+    failed_outfits: int
+    created_at: datetime
+    error_message: Optional[str] = None
+    model_config = {"from_attributes": True}
+
+
 class JobStatusOut(BaseModel):
     id: int
     status: JobStatus
