@@ -94,7 +94,7 @@ export default function Gallery() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {filteredOutfits.map((item, idx) => (
+          {filteredOutfits.map((item) => (
             <div key={item.id} className="card outfit-card fade-up">
               <div className="outfit-card__header" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 16 }}>
                 <div>
