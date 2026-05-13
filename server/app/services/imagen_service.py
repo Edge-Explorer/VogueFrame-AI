@@ -33,6 +33,7 @@ def generate_fashion_images(
     prompt: str,
     outfit_image_bytes: bytes,
     count: int = 1,
+    reference_images_bytes: list[bytes] | None = None,
 ) -> list[bytes]:
     """
     Generate fashion images using Gemini image generation models.
@@ -44,6 +45,7 @@ def generate_fashion_images(
         prompt: Full structured prompt from the prompt engine.
         outfit_image_bytes: Raw bytes of the source outfit image.
         count: Number of images to generate (1-4).
+        reference_images_bytes: Optional raw bytes of reference images (background, lighting, etc).
 
     Raises:
         RuntimeError: On permanent failure across all models.
@@ -58,11 +60,18 @@ def generate_fashion_images(
                 # Pass the source outfit image as inline data so the model can visually preserve/replicate it exactly
                 contents = [
                     types.Part.from_bytes(data=outfit_image_bytes, mime_type="image/png"),
-                    "CRITICAL VISUAL INPUT: The uploaded image depicts the exact clothing item. "
+                    "CRITICAL VISUAL INPUT (Image 1): The uploaded image depicts the exact clothing item. "
                     "You MUST generate an image of a model wearing this exact garment. The cut, color, texture, material, "
                     "zippers, buttons, stitching, collar, and overall silhouette must be 100% IDENTICAL to the visual features "
-                    "seen in the reference image.\n\n" + prompt
+                    "seen in the clothing reference image."
                 ]
+
+                if reference_images_bytes:
+                    for i, ref_bytes in enumerate(reference_images_bytes):
+                        contents.append(types.Part.from_bytes(data=ref_bytes, mime_type="image/png"))
+                        contents.append(f"REFERENCE IMAGE {i+2}: Use this image as a strong reference for the background environment, aesthetic, and lighting style.")
+
+                contents.append("\n\nFINAL INSTRUCTIONS: " + prompt)
 
                 image_bytes_list: list[bytes] = []
                 for img_idx in range(count):

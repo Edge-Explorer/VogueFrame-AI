@@ -56,6 +56,14 @@ def process_outfit_item(outfit_item: OutfitItem, db: Session) -> None:
         # 1. Download outfit image
         outfit_bytes = _fetch_image_bytes(outfit_item.outfit_image_url)
 
+        # 1b. Download reference images
+        ref_bytes_list = []
+        for ref in outfit_item.reference_images:
+            try:
+                ref_bytes_list.append(_fetch_image_bytes(ref.url))
+            except Exception as e:
+                print(f"[Warning] Failed to fetch reference image {ref.url}: {e}")
+
         # 2. Build structured prompt
         ref_descriptions = _build_reference_descriptions(outfit_item)
         prompt = build_outfit_prompt(
@@ -70,6 +78,7 @@ def process_outfit_item(outfit_item: OutfitItem, db: Session) -> None:
             prompt=prompt,
             outfit_image_bytes=outfit_bytes,
             count=outfit_item.images_requested,
+            reference_images_bytes=ref_bytes_list if ref_bytes_list else None,
         )
 
         # 4. Upload each generated image to Cloudinary and persist record
