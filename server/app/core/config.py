@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
 
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173"]
+    ALLOWED_ORIGINS: List[str] = ["*"]
 
     class Config:
         import os
