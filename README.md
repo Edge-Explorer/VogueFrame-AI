@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="client/public/logo.png" width="100" alt="VogueFrame AI Logo" />
+</p>
+
 # VogueFrame AI — Production Evaluation Submission
 
 **Live Evaluation Demo:** [https://vogue-frame-ai-w5m3.vercel.app](https://vogue-frame-ai-w5m3.vercel.app)
