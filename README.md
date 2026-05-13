@@ -1,6 +1,6 @@
 # VogueFrame AI — Production Evaluation Submission
 
-**🚀 Live Evaluation Demo:** [https://vogue-frame-ai-w5m3.vercel.app](https://vogue-frame-ai-w5m3.vercel.app)
+**Live Evaluation Demo:** [https://vogue-frame-ai-w5m3.vercel.app](https://vogue-frame-ai-w5m3.vercel.app)
 
 An enterprise-grade AI-powered outfit image generation platform architected for high-fidelity fashion e-commerce and marketing campaign production. 
 
