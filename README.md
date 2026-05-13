@@ -1,5 +1,7 @@
 # VogueFrame AI — Production Evaluation Submission
 
+**🚀 Live Evaluation Demo:** [https://vogue-frame-ai-w5m3.vercel.app](https://vogue-frame-ai-w5m3.vercel.app)
+
 An enterprise-grade AI-powered outfit image generation platform architected for high-fidelity fashion e-commerce and marketing campaign production. 
 
 This repository serves as the complete, end-to-end implementation submission for the AI Tech Intern Assignment. The system processes primary outfit images and multi-category reference directions (model type, pose, background, lighting, and brand vibe) to synthesize commercially viable fashion imagery using the required Nano Banana 2 engine layer, strictly preserving the source garment design without drift or hallucination.
